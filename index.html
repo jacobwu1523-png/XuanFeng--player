@@ -1,0 +1,148 @@
+<!DOCTYPE html>
+<html lang="zh-Hant">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>玄鋒電競 | XUAN FENG ESPORTS</title>
+    <link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@400;900&family=Noto+Sans+TC:wght@500;900&display=swap" rel="stylesheet">
+    <style>
+        :root { --cyan: #00f2ff; --pink: #ff0050; --gold: #ffaa00; --bg: #050505; }
+        body { margin: 0; background: var(--bg); color: #fff; font-family: 'Orbitron', 'Noto Sans TC', sans-serif; display: flex; justify-content: center; align-items: center; min-height: 100vh; overflow-x: hidden; }
+        body::before { content: ""; position: fixed; inset: 0; background: linear-gradient(rgba(18,16,16,0) 50%, rgba(0,0,0,0.1) 50%), linear-gradient(90deg, rgba(255,0,0,0.02), rgba(0,255,0,0.01), rgba(0,0,255,0.02)); background-size: 100% 3px, 3px 100%; z-index: 10; pointer-events: none; }
+        .container { width: 90%; max-width: 400px; z-index: 20; text-align: center; }
+        .logo-area { margin-bottom: 40px; }
+        .logo-area h1 { font-size: 40px; margin: 0; font-weight: 900; font-style: italic; background: linear-gradient(180deg, #fff 40%, #777 100%); -webkit-background-clip: text; -webkit-text-fill-color: transparent; filter: drop-shadow(0 0 10px rgba(0, 242, 255, 0.4)); }
+        .btn { position: relative; text-decoration: none; padding: 18px; margin-bottom: 15px; background: rgba(255, 255, 255, 0.03); border: 1px solid rgba(255, 255, 255, 0.1); color: #fff; font-size: 18px; font-weight: 900; clip-path: polygon(8% 0, 100% 0, 92% 100%, 0 100%); transition: 0.3s; cursor: pointer; display: flex; align-items: center; justify-content: center; }
+        .btn:hover { transform: scale(1.05) skewX(-2deg); background: rgba(255, 255, 255, 0.1); border-color: var(--cyan); box-shadow: 0 0 20px rgba(0, 242, 255, 0.3); }
+        .btn-tiktok { border-left: 6px solid var(--pink); }
+        .btn-line { border-left: 6px solid #00b900; }
+        .btn-players { border-left: 6px solid var(--gold); color: var(--gold); }
+        #player-modal { display: none; position: fixed; inset: 0; background: rgba(0,0,0,0.95); z-index: 100; backdrop-filter: blur(10px); justify-content: center; align-items: center; }
+        .modal-content { width: 85%; max-width: 350px; border: 2px solid var(--gold); padding: 25px; clip-path: polygon(5% 0, 100% 0, 95% 100%, 0 100%); background: #111; }
+        .admin-panel { display: none; background: rgba(255, 170, 0, 0.1); padding: 15px; margin-bottom: 15px; border: 1px dashed var(--gold); }
+        .admin-panel input { width: 100%; padding: 10px; margin-bottom: 10px; background: #222; border: 1px solid #444; color: #fff; border-radius: 4px; }
+        .admin-panel button { width: 100%; padding: 10px; background: var(--gold); color: #000; font-weight: 900; border: none; cursor: pointer; }
+        .player-item { display: flex; justify-content: space-between; padding: 15px; border-bottom: 1px solid #222; align-items: center; }
+        .del-btn { background: #ff4444; color: white; border: none; padding: 5px 10px; cursor: pointer; font-weight: bold; }
+        .admin-trigger { margin-top: 50px; font-size: 8px; color: #151515; cursor: pointer; letter-spacing: 2px; }
+    </style>
+</head>
+<body>
+
+    <div class="container">
+        <div class="logo-area">
+            <h1>玄鋒電競</h1>
+            <div style="background:var(--cyan); color:#000; display:inline-block; padding:2px 12px; font-size:12px; font-weight:900; transform:skewX(-15deg);">SYSTEM_OFFICIAL</div>
+        </div>
+
+        <div class="menu-list">
+            <a href="https://www.tiktok.com/@xuenfeng_xu666_?_r=1" class="btn btn-tiktok" target="_blank">TIKTOK 頻道</a>
+            <div class="btn btn-players" onclick="openModal()">頂尖打手名錄</div>
+            <a href="https://lin.ee/rTNT2B6" class="btn btn-line" target="_blank">LINE 官方客服</a>
+            <a href="https://youtube.com/@xfg-mtd" class="btn" style="border-left: 6px solid #ff0000;">YOUTUBE 賽事</a>
+            <a href="https://discord.gg/vCcFpKuzR" class="btn" style="border-left: 6px solid #5865f2;">DISCORD 語音</a>
+        </div>
+
+        <div class="admin-trigger" onclick="loginSystem()">AUTH_ACCESS_POINT</div>
+    </div>
+
+    <div id="player-modal">
+        <div class="modal-content">
+            <h2 id="modal-title" style="color:var(--gold); margin:0; font-style:italic;">ELITE PLAYERS</h2>
+            
+            <div id="admin-panel" class="admin-panel">
+                <input type="text" id="p-name" placeholder="打手名字">
+                <input type="text" id="p-url" placeholder="TikTok 連結">
+                <button id="submit-btn" onclick="addPlayer()">確認刊登</button>
+            </div>
+
+            <div id="player-list" style="max-height: 300px; overflow-y: auto; text-align: left; margin: 15px 0;">
+                載入中...
+            </div>
+            
+            <div style="color:#ff4444; font-weight:bold; cursor:pointer;" onclick="closeModal()">[ 關閉 ]</div>
+        </div>
+    </div>
+
+    <script>
+        // --- 核心設定區 ---
+        const BIN_ID = '69e6136910716a4d5de5d287'; 
+        const API_KEY = '$2a$10$DATG9SXKhYZOGD8SKSroCeX7SXKkiOEpP9xDZ0Wap7b1OPxjbmAHS';
+        const ADMIN_PW = '@8888';
+
+        let isAdmin = false;
+        let players = [];
+
+        async function fetchPlayers() {
+            const listDiv = document.getElementById('player-list');
+            try {
+                const res = await fetch(`https://api.jsonbin.io/v3/b/${BIN_ID}/latest`, {
+                    headers: { 'X-Master-Key': API_KEY, 'X-Bin-Meta': 'false' }
+                });
+                players = await res.json();
+                if (!Array.isArray(players)) players = [];
+                renderPlayers();
+            } catch (e) {
+                listDiv.innerHTML = "雲端讀取失敗，請確認 JSONbin 內有內容";
+            }
+        }
+
+        function loginSystem() {
+            if (prompt("ADMIN AUTHENTICATION：") === ADMIN_PW) {
+                isAdmin = true;
+                document.getElementById('admin-panel').style.display = 'block';
+                document.getElementById('modal-title').innerText = "ADMIN COMMAND";
+                openModal();
+            } else { alert("ACCESS DENIED"); }
+        }
+
+        async function addPlayer() {
+            const name = document.getElementById('p-name').value;
+            const url = document.getElementById('p-url').value;
+            if(!name || !url) return alert("資訊不完整");
+
+            const btn = document.getElementById('submit-btn');
+            btn.disabled = true; btn.innerText = "UPLOADING...";
+
+            players.push({ name, url });
+            await updateCloud();
+            
+            document.getElementById('p-name').value = '';
+            document.getElementById('p-url').value = '';
+            btn.disabled = false; btn.innerText = "確認刊登";
+            renderPlayers();
+        }
+
+        async function deletePlayer(index) {
+            if(confirm("確定要撤下此打手？")) {
+                players.splice(index, 1);
+                await updateCloud();
+                renderPlayers();
+            }
+        }
+
+        async function updateCloud() {
+            try {
+                await fetch(`https://api.jsonbin.io/v3/b/${BIN_ID}`, {
+                    method: 'PUT',
+                    headers: { 'Content-Type': 'application/json', 'X-Master-Key': API_KEY },
+                    body: JSON.stringify(players)
+                });
+            } catch (e) { alert("雲端儲存失敗"); }
+        }
+
+        function renderPlayers() {
+            const listDiv = document.getElementById('player-list');
+            listDiv.innerHTML = players.length ? players.map((p, i) => `
+                <div class="player-item">
+                    <a href="${p.url}" target="_blank" style="color:#fff; text-decoration:none; font-weight:bold;">${p.name}</a>
+                    ${isAdmin ? `<button class="del-btn" onclick="deletePlayer(${i})">撤下</button>` : ''}
+                </div>
+            `).join('') : "<div style='color:#444'>NO DATA</div>";
+        }
+
+        function openModal() { document.getElementById('player-modal').style.display = 'flex'; fetchPlayers(); }
+        function closeModal() { document.getElementById('player-modal').style.display = 'none'; }
+    </script>
+</body>
+</html>
