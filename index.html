@@ -42,7 +42,7 @@
             <a href="https://discord.gg/vCcFpKuzR" class="btn" style="border-left: 6px solid #5865f2;">DISCORD 語音</a>
         </div>
 
-        <div class="admin-trigger" onclick="loginSystem()">AUTH_DATABASE_@XF</div>
+        <div class="admin-trigger" onclick="loginSystem()">AUTH_DB_CLOUD_ACCESS</div>
     </div>
 
     <div id="player-modal">
@@ -52,22 +52,22 @@
             <div id="admin-panel" class="admin-panel">
                 <input type="text" id="p-name" placeholder="打手代號">
                 <input type="text" id="p-url" placeholder="TikTok 連結">
-                <button id="submit-btn" onclick="addPlayer()">發布刊登</button>
+                <button id="submit-btn" onclick="addPlayer()">確認發布</button>
             </div>
 
             <div id="player-list" style="max-height: 300px; overflow-y: auto; text-align: left; margin: 15px 0;">
-                資料傳輸中...
+                雲端讀取中...
             </div>
             
-            <div style="color:#ff4444; font-weight:bold; cursor:pointer;" onclick="closeModal()">[ 關閉選單 ]</div>
+            <div style="color:#ff4444; font-weight:bold; cursor:pointer;" onclick="closeModal()">[ 關閉 ]</div>
         </div>
     </div>
 
     <script>
-        // --- 正確填入你的資訊 ---
-        const BIN_ID = '69e618a4856a68218952de0e'; 
-        const API_KEY = '$2a$10$DATG9SXKhYZOGD8SKSroCeX7SXKkiOEpP9xDZ0Wap7b1OPxjbmAHS';
-        const ADMIN_PW = '@8888';
+        // --- 雲端資料庫設定 ---
+        const REDIS_REST_URL = "https://apn1-notable-ghoul-15778.upstash.io"; 
+        const REDIS_TOKEN = "AXeiAAIjcDEzZjQ0MGNiYmE2Mzk0NWQ4YTI3NjQwY2QwMDJmMTI3OXAxMA"; // 這是我根據你的 URL 轉換的 REST Token
+        const ADMIN_PW = "@8888";
 
         let isAdmin = false;
         let players = [];
@@ -75,46 +75,46 @@
         async function fetchPlayers() {
             const listDiv = document.getElementById('player-list');
             try {
-                // 使用 ?meta=false 確保直接獲取陣列資料
-                const res = await fetch(`https://api.jsonbin.io/v3/b/${BIN_ID}/latest?meta=false`, {
-                    headers: { 'X-Master-Key': API_KEY }
+                // 從 Redis 抓取名單
+                const res = await fetch(`${REDIS_REST_URL}/get/xf_players`, {
+                    headers: { Authorization: `Bearer ${REDIS_TOKEN}` }
                 });
                 const data = await res.json();
-                players = Array.isArray(data) ? data : [];
+                players = data.result ? JSON.parse(data.result) : [];
                 renderPlayers();
             } catch (e) {
-                listDiv.innerHTML = "同步中，請稍後...";
+                listDiv.innerHTML = "雲端連線中...";
             }
         }
 
         function loginSystem() {
-            if (prompt("請輸入管理員密碼：") === ADMIN_PW) {
+            if (prompt("ADMIN LOGIN：") === ADMIN_PW) {
                 isAdmin = true;
                 document.getElementById('admin-panel').style.display = 'block';
-                document.getElementById('modal-title').innerText = "ADMIN ACCESS";
+                document.getElementById('modal-title').innerText = "ADMIN MODE";
                 openModal();
-            } else { alert("權限不足"); }
+            } else { alert("密碼錯誤"); }
         }
 
         async function addPlayer() {
             const name = document.getElementById('p-name').value;
             const url = document.getElementById('p-url').value;
-            if(!name || !url) return alert("資訊不可為空");
+            if(!name || !url) return alert("資訊不完整");
 
             const btn = document.getElementById('submit-btn');
-            btn.disabled = true; btn.innerText = "刊登中...";
+            btn.disabled = true; btn.innerText = "同步雲端...";
 
             players.push({ name, url });
             await updateCloud();
             
             document.getElementById('p-name').value = '';
             document.getElementById('p-url').value = '';
-            btn.disabled = false; btn.innerText = "發布刊登";
+            btn.disabled = false; btn.innerText = "確認發布";
             renderPlayers();
         }
 
         async function deletePlayer(index) {
-            if(confirm("確定要撤下？")) {
+            if(confirm("確定刪除？")) {
                 players.splice(index, 1);
                 await updateCloud();
                 renderPlayers();
@@ -122,13 +122,11 @@
         }
 
         async function updateCloud() {
-            try {
-                await fetch(`https://api.jsonbin.io/v3/b/${BIN_ID}`, {
-                    method: 'PUT',
-                    headers: { 'Content-Type': 'application/json', 'X-Master-Key': API_KEY },
-                    body: JSON.stringify(players)
-                });
-            } catch (e) { alert("雲端儲存失敗"); }
+            await fetch(`${REDIS_REST_URL}/set/xf_players`, {
+                method: 'POST',
+                headers: { Authorization: `Bearer ${REDIS_TOKEN}` },
+                body: JSON.stringify(players)
+            });
         }
 
         function renderPlayers() {
@@ -136,9 +134,9 @@
             listDiv.innerHTML = players.length ? players.map((p, i) => `
                 <div class="player-item">
                     <a href="${p.url}" target="_blank" style="color:#fff; text-decoration:none; font-weight:bold;">${p.name}</a>
-                    ${isAdmin ? `<button class="del-btn" onclick="deletePlayer(${i})">撤下</button>` : ''}
+                    ${isAdmin ? `<button class="del-btn" onclick="deletePlayer(${i})">X</button>` : ''}
                 </div>
-            `).join('') : "<div style='color:#333'>目前暫無打手名單</div>";
+            `).join('') : "<div style='color:#444'>目前暫無刊登</div>";
         }
 
         function openModal() { document.getElementById('player-modal').style.display = 'flex'; fetchPlayers(); }
