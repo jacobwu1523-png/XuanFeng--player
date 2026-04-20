@@ -15,7 +15,6 @@
         .btn { position: relative; text-decoration: none; padding: 18px; margin-bottom: 15px; background: rgba(255, 255, 255, 0.03); border: 1px solid rgba(255, 255, 255, 0.1); color: #fff; font-size: 18px; font-weight: 900; clip-path: polygon(8% 0, 100% 0, 92% 100%, 0 100%); transition: 0.3s; cursor: pointer; display: flex; align-items: center; justify-content: center; }
         .btn:hover { transform: scale(1.05) skewX(-2deg); background: rgba(255, 255, 255, 0.1); border-color: var(--cyan); box-shadow: 0 0 20px rgba(0, 242, 255, 0.3); }
         .btn-tiktok { border-left: 6px solid var(--pink); }
-        .btn-line { border-left: 6px solid #00b900; }
         .btn-players { border-left: 6px solid var(--gold); color: var(--gold); }
         #player-modal { display: none; position: fixed; inset: 0; background: rgba(0,0,0,0.95); z-index: 100; backdrop-filter: blur(10px); justify-content: center; align-items: center; }
         .modal-content { width: 85%; max-width: 350px; border: 2px solid var(--gold); padding: 25px; clip-path: polygon(5% 0, 100% 0, 95% 100%, 0 100%); background: #111; }
@@ -24,7 +23,7 @@
         .admin-panel button { width: 100%; padding: 10px; background: var(--gold); color: #000; font-weight: 900; border: none; cursor: pointer; }
         .player-item { display: flex; justify-content: space-between; padding: 15px; border-bottom: 1px solid #222; align-items: center; }
         .del-btn { background: #ff4444; color: white; border: none; padding: 5px 10px; cursor: pointer; font-weight: bold; }
-        .admin-trigger { margin-top: 50px; font-size: 8px; color: #151515; cursor: pointer; letter-spacing: 2px; }
+        .admin-trigger { margin-top: 50px; font-size: 8px; color: #111; cursor: pointer; letter-spacing: 2px; }
     </style>
 </head>
 <body>
@@ -38,12 +37,12 @@
         <div class="menu-list">
             <a href="https://www.tiktok.com/@xuenfeng_xu666_?_r=1" class="btn btn-tiktok" target="_blank">TIKTOK 頻道</a>
             <div class="btn btn-players" onclick="openModal()">頂尖打手名錄</div>
-            <a href="https://lin.ee/rTNT2B6" class="btn btn-line" target="_blank">LINE 官方客服</a>
+            <a href="https://lin.ee/rTNT2B6" class="btn" style="border-left: 6px solid #00b900;">LINE 官方客服</a>
             <a href="https://youtube.com/@xfg-mtd" class="btn" style="border-left: 6px solid #ff0000;">YOUTUBE 賽事</a>
             <a href="https://discord.gg/vCcFpKuzR" class="btn" style="border-left: 6px solid #5865f2;">DISCORD 語音</a>
         </div>
 
-        <div class="admin-trigger" onclick="loginSystem()">AUTH_ACCESS_POINT</div>
+        <div class="admin-trigger" onclick="loginSystem()">DB_AUTH_@XF</div>
     </div>
 
     <div id="player-modal">
@@ -51,7 +50,7 @@
             <h2 id="modal-title" style="color:var(--gold); margin:0; font-style:italic;">ELITE PLAYERS</h2>
             
             <div id="admin-panel" class="admin-panel">
-                <input type="text" id="p-name" placeholder="打手名字">
+                <input type="text" id="p-name" placeholder="打手代號">
                 <input type="text" id="p-url" placeholder="TikTok 連結">
                 <button id="submit-btn" onclick="addPlayer()">確認刊登</button>
             </div>
@@ -65,7 +64,6 @@
     </div>
 
     <script>
-        // --- 核心設定區 ---
         const BIN_ID = '69e6136910716a4d5de5d287'; 
         const API_KEY = '$2a$10$DATG9SXKhYZOGD8SKSroCeX7SXKkiOEpP9xDZ0Wap7b1OPxjbmAHS';
         const ADMIN_PW = '@8888';
@@ -76,24 +74,25 @@
         async function fetchPlayers() {
             const listDiv = document.getElementById('player-list');
             try {
-                const res = await fetch(`https://api.jsonbin.io/v3/b/${BIN_ID}/latest`, {
-                    headers: { 'X-Master-Key': API_KEY, 'X-Bin-Meta': 'false' }
+                // 加上 ?meta=false 避免抓到無關的數據
+                const res = await fetch(`https://api.jsonbin.io/v3/b/${BIN_ID}/latest?meta=false`, {
+                    headers: { 'X-Master-Key': API_KEY }
                 });
-                players = await res.json();
-                if (!Array.isArray(players)) players = [];
+                const data = await res.json();
+                players = Array.isArray(data) ? data : [];
                 renderPlayers();
             } catch (e) {
-                listDiv.innerHTML = "雲端讀取失敗，請確認 JSONbin 內有內容";
+                listDiv.innerHTML = "雲端同步中...";
             }
         }
 
         function loginSystem() {
-            if (prompt("ADMIN AUTHENTICATION：") === ADMIN_PW) {
+            if (prompt("請輸入管理員密碼：") === ADMIN_PW) {
                 isAdmin = true;
                 document.getElementById('admin-panel').style.display = 'block';
-                document.getElementById('modal-title').innerText = "ADMIN COMMAND";
+                document.getElementById('modal-title').innerText = "ADMIN MODE";
                 openModal();
-            } else { alert("ACCESS DENIED"); }
+            } else { alert("密碼錯誤"); }
         }
 
         async function addPlayer() {
@@ -102,7 +101,7 @@
             if(!name || !url) return alert("資訊不完整");
 
             const btn = document.getElementById('submit-btn');
-            btn.disabled = true; btn.innerText = "UPLOADING...";
+            btn.disabled = true; btn.innerText = "刊登中...";
 
             players.push({ name, url });
             await updateCloud();
@@ -114,7 +113,7 @@
         }
 
         async function deletePlayer(index) {
-            if(confirm("確定要撤下此打手？")) {
+            if(confirm("確定撤下？")) {
                 players.splice(index, 1);
                 await updateCloud();
                 renderPlayers();
@@ -128,7 +127,7 @@
                     headers: { 'Content-Type': 'application/json', 'X-Master-Key': API_KEY },
                     body: JSON.stringify(players)
                 });
-            } catch (e) { alert("雲端儲存失敗"); }
+            } catch (e) { alert("同步失敗"); }
         }
 
         function renderPlayers() {
@@ -138,7 +137,7 @@
                     <a href="${p.url}" target="_blank" style="color:#fff; text-decoration:none; font-weight:bold;">${p.name}</a>
                     ${isAdmin ? `<button class="del-btn" onclick="deletePlayer(${i})">撤下</button>` : ''}
                 </div>
-            `).join('') : "<div style='color:#444'>NO DATA</div>";
+            `).join('') : "<div style='color:#444'>目前無刊登打手</div>";
         }
 
         function openModal() { document.getElementById('player-modal').style.display = 'flex'; fetchPlayers(); }
